@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/consulta_provider.dart';
+import '../models/consulta.dart';
 import '../models/medico.dart';
+import '../providers/consulta_provider.dart';
 
 class NovaConsulta extends StatefulWidget {
-  const NovaConsulta({super.key});
+  final Consulta? consulta;
+
+  const NovaConsulta({Key? key, this.consulta}) : super(key: key);
 
   @override
   State<NovaConsulta> createState() => _NovaConsultaState();
@@ -13,197 +16,215 @@ class NovaConsulta extends StatefulWidget {
 class _NovaConsultaState extends State<NovaConsulta> {
   final _formKey = GlobalKey<FormState>();
 
-  final TextEditingController pacienteController = TextEditingController();
-  final TextEditingController medicoController = TextEditingController();
+  final TextEditingController _pacienteController = TextEditingController();
+  Medico? _medicoSelecionado;
+  DateTime _dataSelecionada = DateTime.now();
+  final TextEditingController _motivoController = TextEditingController();
+  final TextEditingController _tipoController = TextEditingController();
+  final TextEditingController _observacoesController = TextEditingController();
 
-  String? medicoSelecionadoId;
-  String data = '';
-  String hora = '';
-  String motivo = '';
-  String tipo = '';
-  String observacoes = '';
+  List<Medico> _medicos = [];
 
   @override
   void initState() {
     super.initState();
-    Provider.of<ConsultaProvider>(context, listen: false).buscarMedicos();
-  }
 
-  String? _converterDataParaIso(String dataBrasileira) {
-    try {
-      final partes = dataBrasileira.split('/');
-      if (partes.length != 3) return null;
-      final dia = int.parse(partes[0]);
-      final mes = int.parse(partes[1]);
-      final ano = int.parse(partes[2]);
-      final data = DateTime(ano, mes, dia);
-      return data.toIso8601String().split('T')[0];
-    } catch (e) {
-      return null;
-    }
-  }
+    final consultaProvider = context.read<ConsultaProvider>();
+    _medicos = consultaProvider.medicos;
 
-  Future<void> salvarConsulta() async {
-    if (medicoSelecionadoId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecione um médico válido')),
-      );
-      return;
-    }
-
-    final dataIso = _converterDataParaIso(data);
-    if (dataIso == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Data inválida. Use o formato dd/MM/yyyy')),
-      );
-      return;
-    }
-
-    final provider = Provider.of<ConsultaProvider>(context, listen: false);
-
-    final consulta = {
-      'pacienteNome': pacienteController.text.trim(),
-      'medicoId': medicoSelecionadoId!,
-      'data': "${dataIso}T${hora}:00",
-      'motivo': motivo,
-      'tipo': tipo,
-      'observacoes': observacoes,
-    };
-
-    try {
-      final sucesso = await provider.salvarConsultaAPI(consulta);
-
-      if (sucesso) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Consulta cadastrada com sucesso')),
+    if (_medicos.isEmpty) {
+      consultaProvider.buscarMedicos().then((_) {
+        setState(() {
+          _medicos = consultaProvider.medicos;
+          if (widget.consulta != null) {
+            _medicoSelecionado = _medicos.firstWhere(
+                  (m) => m.id == widget.consulta!.medicoId,
+              orElse: () => _medicos.isNotEmpty ? _medicos[0] : throw Exception('Nenhum médico disponível'),
+            );
+          }
+        });
+      });
+    } else {
+      if (widget.consulta != null) {
+        final c = widget.consulta!;
+        _pacienteController.text = c.pacienteNome;
+        _medicoSelecionado = _medicos.firstWhere(
+              (m) => m.id == c.medicoId,
+          orElse: () => _medicos.isNotEmpty ? _medicos[0] : throw Exception('Nenhum médico disponível'),
         );
-        await provider.buscarConsultas();
-        if (mounted) Navigator.of(context).pop();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Erro ao cadastrar consulta')),
-        );
+        _dataSelecionada = c.dataHora;
+        _motivoController.text = c.motivo;
+        _tipoController.text = c.tipo;
+        _observacoesController.text = c.observacoes;
       }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro na comunicação: $e')),
-      );
     }
   }
 
   @override
   void dispose() {
-    pacienteController.dispose();
-    medicoController.dispose();
+    _pacienteController.dispose();
+    _motivoController.dispose();
+    _tipoController.dispose();
+    _observacoesController.dispose();
     super.dispose();
+  }
+
+  Future<void> _selecionarData(BuildContext context) async {
+    final novaData = await showDatePicker(
+      context: context,
+      initialDate: _dataSelecionada,
+      firstDate: DateTime.now().subtract(const Duration(days: 365)),
+      lastDate: DateTime.now().add(const Duration(days: 365 * 2)),
+    );
+    if (novaData != null) {
+      setState(() {
+        _dataSelecionada = DateTime(
+          novaData.year,
+          novaData.month,
+          novaData.day,
+          _dataSelecionada.hour,
+          _dataSelecionada.minute,
+        );
+      });
+    }
+  }
+
+  void _salvarConsulta() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_medicoSelecionado == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecione um médico')),
+      );
+      return;
+    }
+
+    final consultaProvider = context.read<ConsultaProvider>();
+
+    final novaConsulta = Consulta(
+      id: widget.consulta?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      pacienteNome: _pacienteController.text.trim(),
+      medicoNome: _medicoSelecionado!.nome,
+      medicoId: _medicoSelecionado!.id,
+      dataHora: _dataSelecionada,
+      motivo: _motivoController.text.trim(),
+      tipo: _tipoController.text.trim(),
+      observacoes: _observacoesController.text.trim(),
+    );
+
+    if (widget.consulta == null) {
+      // Criar nova - usando método salvarConsultaAPI com Map (simula API)
+      final sucesso = await consultaProvider.salvarConsultaAPI({
+        'pacienteNome': novaConsulta.pacienteNome,
+        'medicoId': novaConsulta.medicoId,
+        'data': novaConsulta.dataHora.toIso8601String(),
+        'motivo': novaConsulta.motivo,
+        'tipo': novaConsulta.tipo,
+        'observacoes': novaConsulta.observacoes,
+      });
+      if (!sucesso) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Erro ao salvar consulta')),
+        );
+        return;
+      }
+    } else {
+      // Editar: remove antiga e adiciona nova localmente
+      consultaProvider.excluirConsulta(widget.consulta!.id);
+      consultaProvider.adicionarConsulta(novaConsulta);
+    }
+
+    Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<ConsultaProvider>(context);
-    final medicos = provider.medicos;
-
     return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
+      child: SizedBox(
+        width: double.maxFinite,
         child: Form(
           key: _formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
-                controller: pacienteController,
-                decoration: const InputDecoration(labelText: 'Paciente (digite ou crie)'),
-                validator: (val) => val == null || val.trim().isEmpty ? 'Informe o nome do paciente' : null,
+                controller: _pacienteController,
+                decoration: const InputDecoration(labelText: 'Nome do Paciente'),
+                validator: (value) => value == null || value.isEmpty ? 'Informe o nome do paciente' : null,
               ),
-
               const SizedBox(height: 12),
-
-              Autocomplete<Medico>(
-                optionsBuilder: (TextEditingValue textEditingValue) {
-                  if (textEditingValue.text.isEmpty) return const Iterable<Medico>.empty();
-                  return medicos.where((m) =>
-                      m.nome.toLowerCase().contains(textEditingValue.text.toLowerCase()));
+              DropdownButtonFormField<Medico>(
+                value: _medicoSelecionado,
+                decoration: const InputDecoration(labelText: 'Médico'),
+                items: _medicos
+                    .map(
+                      (medico) => DropdownMenuItem(
+                    value: medico,
+                    child: Text(medico.nome),
+                  ),
+                )
+                    .toList(),
+                onChanged: (medico) {
+                  setState(() {
+                    _medicoSelecionado = medico;
+                  });
                 },
-                displayStringForOption: (medico) => "${medico.nome} (${medico.especialidade})",
-                fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-                  return TextFormField(
-                    controller: controller,
-                    focusNode: focusNode,
-                    decoration: const InputDecoration(labelText: 'Médico (selecione existente)'),
-                    validator: (val) {
-                      if (val == null || val.isEmpty) return 'Selecione um médico válido';
-                      if (medicoSelecionadoId == null) return 'Selecione um médico válido';
-                      return null;
-                    },
-                    onChanged: (val) {
-                      final medicoEncontrado = medicos.firstWhere(
-                            (m) => m.nome.toLowerCase() == val.toLowerCase(),
-                        orElse: () => Medico(id: '', nome: '', especialidade: ''),
-                      );
-                      if (medicoEncontrado.id.isNotEmpty) {
-                        medicoSelecionadoId = medicoEncontrado.id;
-                      } else {
-                        medicoSelecionadoId = null;
-                      }
-                    },
-                  );
-                },
-                onSelected: (Medico medico) {
-                  medicoSelecionadoId = medico.id;
-                  medicoController.text = medico.nome;
-                },
+                validator: (value) => value == null ? 'Selecione um médico' : null,
               ),
-
               const SizedBox(height: 12),
-
-              TextFormField(
-                decoration: const InputDecoration(labelText: 'Data (dd/MM/yyyy)'),
-                keyboardType: TextInputType.datetime,
-                onChanged: (val) => data = val,
-                validator: (val) => val == null || val.isEmpty ? 'Informe a data' : null,
+              Row(
+                children: [
+                  Expanded(
+                    child: InputDecorator(
+                      decoration: const InputDecoration(labelText: 'Data da Consulta'),
+                      child: GestureDetector(
+                        onTap: () => _selecionarData(context),
+                        child: Text(
+                          '${_dataSelecionada.day.toString().padLeft(2, '0')}/'
+                              '${_dataSelecionada.month.toString().padLeft(2, '0')}/'
+                              '${_dataSelecionada.year}',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: InputDecorator(
+                      decoration: const InputDecoration(labelText: 'Hora'),
+                      child: Text(
+                        '${_dataSelecionada.hour.toString().padLeft(2, '0')}:'
+                            '${_dataSelecionada.minute.toString().padLeft(2, '0')}',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-
               const SizedBox(height: 12),
-
               TextFormField(
-                decoration: const InputDecoration(labelText: 'Hora (HH:mm)'),
-                keyboardType: TextInputType.datetime,
-                onChanged: (val) => hora = val,
-                validator: (val) => val == null || val.isEmpty ? 'Informe a hora' : null,
-              ),
-
-              const SizedBox(height: 12),
-
-              TextFormField(
+                controller: _motivoController,
                 decoration: const InputDecoration(labelText: 'Motivo'),
-                onChanged: (val) => motivo = val,
+                maxLines: 1,
               ),
-
               const SizedBox(height: 12),
-
               TextFormField(
+                controller: _tipoController,
                 decoration: const InputDecoration(labelText: 'Tipo'),
-                onChanged: (val) => tipo = val,
+                maxLines: 1,
               ),
-
               const SizedBox(height: 12),
-
               TextFormField(
+                controller: _observacoesController,
                 decoration: const InputDecoration(labelText: 'Observações'),
-                onChanged: (val) => observacoes = val,
                 maxLines: 3,
               ),
-
-              const SizedBox(height: 24),
-
-              ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    salvarConsulta();
-                  }
-                },
-                child: const Text('Cadastrar Consulta'),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _salvarConsulta,
+                  child: Text(widget.consulta == null ? 'Cadastrar Consulta' : 'Salvar Alterações'),
+                ),
               ),
             ],
           ),

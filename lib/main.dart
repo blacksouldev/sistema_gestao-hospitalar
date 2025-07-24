@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/consulta_provider.dart';
 import 'pages/login_page.dart';
 import 'pages/home_page.dart';
 
@@ -13,17 +14,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => AuthProvider(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => ConsultaProvider()),
+      ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Sistema Hospitalar',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-        ),
+        theme: ThemeData(primarySwatch: Colors.blue),
         home: Consumer<AuthProvider>(
-          builder: (context, authProvider, _) {
-            return authProvider.isAuthenticated ? const HomePage() : const LoginPage();
+          builder: (context, auth, _) {
+            return auth.isAuthenticated ? const HomePage() : const LoginPage();
           },
         ),
       ),

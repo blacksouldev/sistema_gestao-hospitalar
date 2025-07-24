@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/app_drawer.dart';
 import 'dashboard_page.dart';
+import 'consultas_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -16,7 +17,7 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _selectedPage = page;
     });
-    Navigator.of(context).pop(); // Fecha o Drawer
+    Navigator.of(context).pop();
   }
 
   Widget _getPage() {
@@ -30,7 +31,7 @@ class _HomePageState extends State<HomePage> {
           },
         );
       case 'consultas':
-        return const Center(child: Text('Página: Consultas'));
+        return const ConsultasPage();
       case 'relatorios':
         return const Center(child: Text('Página: Relatórios'));
       case 'pacientes':
@@ -52,7 +53,9 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Sistema Hospitalar - ${_selectedPage[0].toUpperCase()}${_selectedPage.substring(1)}'),
+        title: Text(
+          'Sistema Hospitalar - ${_selectedPage[0].toUpperCase()}${_selectedPage.substring(1)}',
+        ),
       ),
       drawer: AppDrawer(onSelectItem: _onSelectItem),
       body: _getPage(),

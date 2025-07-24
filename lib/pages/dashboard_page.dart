@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/consulta_provider.dart';
 
 class DashboardPage extends StatefulWidget {
   final Function(String pageKey) onCardTap;
@@ -40,7 +42,7 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
-  final List<_CardData> cards = [
+  final List<_CardData> baseCards = [
     _CardData('Consultas', Icons.event_note, Colors.blue, 'consultas'),
     _CardData('Relatórios', Icons.assessment, Colors.green, 'relatorios'),
     _CardData('Pacientes', Icons.people, Colors.orange, 'pacientes'),
@@ -51,7 +53,7 @@ class _DashboardPageState extends State<DashboardPage> {
   ];
 
   String _getDescription(int index) {
-    switch (cards[index].title) {
+    switch (baseCards[index].title) {
       case 'Consultas':
         return 'Gerencie e acompanhe os agendamentos de consultas médicas, visualizando horários, profissionais e status.';
       case 'Relatórios':
@@ -71,8 +73,27 @@ class _DashboardPageState extends State<DashboardPage> {
     }
   }
 
+  int _getContagemConsultas(BuildContext context) {
+    final provider = Provider.of<ConsultaProvider>(context);
+    return provider.consultas.length;
+  }
+
   @override
   Widget build(BuildContext context) {
+    int consultasCount = _getContagemConsultas(context);
+
+    List<_CardData> cards = baseCards.map((card) {
+      if (card.title == 'Consultas') {
+        return _CardData(
+          '${card.title} ($consultasCount)',
+          card.icon,
+          card.color,
+          card.pageKey,
+        );
+      }
+      return card;
+    }).toList();
+
     String descriptionText;
     Color descriptionColor;
 
@@ -145,7 +166,12 @@ class _HoverCard extends StatefulWidget {
   final Function(String) onTap;
   final Function(bool) onHover;
 
-  const _HoverCard({required this.card, required this.onTap, required this.onHover, Key? key}) : super(key: key);
+  const _HoverCard({
+    required this.card,
+    required this.onTap,
+    required this.onHover,
+    Key? key,
+  }) : super(key: key);
 
   @override
   State<_HoverCard> createState() => _HoverCardState();
