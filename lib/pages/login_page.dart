@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 
 class LoginPage extends StatefulWidget {
@@ -15,6 +16,28 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController senhaController = TextEditingController();
   bool _isLoading = false;
 
+  @override
+  void initState() {
+    super.initState();
+    _carregarCredenciaisSalvas();
+  }
+
+  Future<void> _carregarCredenciaisSalvas() async {
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString('email') ?? '';
+    final senha = prefs.getString('senha') ?? '';
+    setState(() {
+      emailController.text = email;
+      senhaController.text = senha;
+    });
+  }
+
+  Future<void> _salvarCredenciais(String email, String senha) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('email', email);
+    await prefs.setString('senha', senha);
+  }
+
   Future<void> _fazerLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -26,7 +49,9 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final sucesso = await authProvider.login(email, senha);
-      if (!sucesso) {
+      if (sucesso) {
+        await _salvarCredenciais(email, senha);
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Usuário ou senha inválidos')),
         );
@@ -50,13 +75,14 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.blue.shade50,
       body: Center(
         child: Container(
           constraints: const BoxConstraints(maxWidth: 400),
           padding: const EdgeInsets.all(24),
           child: Card(
-            elevation: 8,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            elevation: 6,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
               child: Form(
@@ -66,15 +92,15 @@ class _LoginPageState extends State<LoginPage> {
                   children: [
                     const Text(
                       'Login',
-                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 24),
                     TextFormField(
                       controller: emailController,
                       keyboardType: TextInputType.emailAddress,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Email',
-                        border: OutlineInputBorder(),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) return 'Informe o email';
@@ -86,15 +112,16 @@ class _LoginPageState extends State<LoginPage> {
                     TextFormField(
                       controller: senhaController,
                       obscureText: true,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Senha',
-                        border: OutlineInputBorder(),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) return 'Informe a senha';
                         if (value.length < 6) return 'Senha muito curta';
                         return null;
                       },
+                      onFieldSubmitted: (_) => _fazerLogin(),
                     ),
                     const SizedBox(height: 24),
                     SizedBox(
@@ -102,6 +129,9 @@ class _LoginPageState extends State<LoginPage> {
                       height: 48,
                       child: ElevatedButton(
                         onPressed: _isLoading ? null : _fazerLogin,
+                        style: ElevatedButton.styleFrom(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
                         child: _isLoading
                             ? const CircularProgressIndicator(color: Colors.white)
                             : const Text('Entrar'),

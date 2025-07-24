@@ -11,6 +11,7 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   List<bool> _visibleCards = List.filled(7, false);
+  int? _hoveredIndex;
 
   @override
   void initState() {
@@ -19,7 +20,17 @@ class _DashboardPageState extends State<DashboardPage> {
   }
 
   void _animateCards() async {
-    for (int i = 0; i < _visibleCards.length; i++) {
+    final int center = (_visibleCards.length / 2).floor();
+
+    List<int> order = [];
+    order.add(center);
+
+    for (int offset = 1; offset < _visibleCards.length; offset++) {
+      if (center - offset >= 0) order.add(center - offset);
+      if (center + offset < _visibleCards.length) order.add(center + offset);
+    }
+
+    for (int i in order) {
       await Future.delayed(const Duration(milliseconds: 150));
       if (mounted) {
         setState(() {
@@ -39,43 +50,92 @@ class _DashboardPageState extends State<DashboardPage> {
     _CardData('Usuários', Icons.admin_panel_settings, Colors.brown, 'usuarios'),
   ];
 
+  String _getDescription(int index) {
+    switch (cards[index].title) {
+      case 'Consultas':
+        return 'Gerencie e acompanhe os agendamentos de consultas médicas, visualizando horários, profissionais e status.';
+      case 'Relatórios':
+        return 'Visualize relatórios detalhados e gráficos para análise do desempenho, atendimentos e estatísticas do hospital.';
+      case 'Pacientes':
+        return 'Acesse informações completas e histórico clínico dos pacientes, facilitando o acompanhamento do tratamento.';
+      case 'Profissionais':
+        return 'Gerencie o cadastro e dados dos profissionais de saúde, incluindo especialidades e contatos.';
+      case 'Leitos':
+        return 'Controle o status dos leitos, verificando quais estão disponíveis, ocupados ou em manutenção.';
+      case 'Prontuários':
+        return 'Tenha acesso rápido e seguro aos prontuários médicos, com informações detalhadas sobre cada atendimento.';
+      case 'Usuários':
+        return 'Administre os usuários do sistema, definindo permissões e níveis de acesso para garantir a segurança.';
+      default:
+        return '';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    String descriptionText;
+    Color descriptionColor;
+
+    if (_hoveredIndex != null) {
+      descriptionText = _getDescription(_hoveredIndex!);
+      descriptionColor = cards[_hoveredIndex!].color;
+    } else {
+      descriptionText = 'Passe o mouse sobre um card para ver a descrição aqui.';
+      descriptionColor = Colors.grey.shade600;
+    }
+
     return Padding(
       padding: const EdgeInsets.all(3),
-      child: LayoutBuilder(builder: (context, constraints) {
-        // Mantém no máximo 7 colunas, mas adapta pra menos se tela menor
-        int maxColumns = 7;
-        // largura mínima aproximada do card pra respeitar proporção e tamanho visual:
-        // Aqui vamos assumir aproximadamente 130 de largura para o cálculo,
-        // mesmo que o seu código original não tenha tamanho fixo explícito,
-        // mas o aspecto 1.8 garante proporção correta.
-        const approxCardWidth = 130.0;
+      child: Column(
+        children: [
+          Expanded(
+            child: LayoutBuilder(builder: (context, constraints) {
+              int maxColumns = 7;
+              const approxCardWidth = 130.0;
 
-        int crossAxisCount = (constraints.maxWidth / approxCardWidth).floor();
-        if (crossAxisCount < 1) crossAxisCount = 1;
-        if (crossAxisCount > maxColumns) crossAxisCount = maxColumns;
+              int crossAxisCount = (constraints.maxWidth / approxCardWidth).floor();
+              if (crossAxisCount < 1) crossAxisCount = 1;
+              if (crossAxisCount > maxColumns) crossAxisCount = maxColumns;
 
-        return GridView.builder(
-          itemCount: cards.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 3,
-            mainAxisSpacing: 3,
-            childAspectRatio: 1.8,
+              return GridView.builder(
+                itemCount: cards.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: 3,
+                  mainAxisSpacing: 3,
+                  childAspectRatio: 1.8,
+                ),
+                itemBuilder: (context, index) {
+                  return AnimatedOpacity(
+                    duration: const Duration(milliseconds: 500),
+                    opacity: _visibleCards[index] ? 1 : 0,
+                    child: _HoverCard(
+                      card: cards[index],
+                      onTap: widget.onCardTap,
+                      onHover: (hovering) {
+                        setState(() {
+                          _hoveredIndex = hovering ? index : null;
+                        });
+                      },
+                    ),
+                  );
+                },
+              );
+            }),
           ),
-          itemBuilder: (context, index) {
-            return AnimatedOpacity(
-              duration: const Duration(milliseconds: 500),
-              opacity: _visibleCards[index] ? 1 : 0,
-              child: _HoverCard(
-                card: cards[index],
-                onTap: widget.onCardTap,
-              ),
-            );
-          },
-        );
-      }),
+          const SizedBox(height: 12),
+          Text(
+            descriptionText,
+            style: TextStyle(
+              fontSize: 15,
+              color: descriptionColor,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
     );
   }
 }
@@ -83,8 +143,9 @@ class _DashboardPageState extends State<DashboardPage> {
 class _HoverCard extends StatefulWidget {
   final _CardData card;
   final Function(String) onTap;
+  final Function(bool) onHover;
 
-  const _HoverCard({required this.card, required this.onTap, Key? key}) : super(key: key);
+  const _HoverCard({required this.card, required this.onTap, required this.onHover, Key? key}) : super(key: key);
 
   @override
   State<_HoverCard> createState() => _HoverCardState();
@@ -111,11 +172,15 @@ class _HoverCardState extends State<_HoverCard> {
       ),
     ];
 
-    final scale = _hovering ? 1.05 : 1.0;
-
     return MouseRegion(
-      onEnter: (_) => setState(() => _hovering = true),
-      onExit: (_) => setState(() => _hovering = false),
+      onEnter: (_) {
+        setState(() => _hovering = true);
+        widget.onHover(true);
+      },
+      onExit: (_) {
+        setState(() => _hovering = false);
+        widget.onHover(false);
+      },
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: () => widget.onTap(widget.card.pageKey),
