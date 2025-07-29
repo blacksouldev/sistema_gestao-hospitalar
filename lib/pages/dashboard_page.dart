@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/consulta_provider.dart';
+import '../providers/paciente_provider.dart';
 
 class DashboardPage extends StatefulWidget {
   final Function(String pageKey) onCardTap;
@@ -78,14 +79,27 @@ class _DashboardPageState extends State<DashboardPage> {
     return provider.consultas.length;
   }
 
+  int _getContagemPacientes(BuildContext context) {
+    final provider = Provider.of<PacienteProvider>(context);
+    return provider.pacientes.length;
+  }
+
   @override
   Widget build(BuildContext context) {
     int consultasCount = _getContagemConsultas(context);
+    int pacientesCount = _getContagemPacientes(context);
 
     List<_CardData> cards = baseCards.map((card) {
       if (card.title == 'Consultas') {
         return _CardData(
           '${card.title} ($consultasCount)',
+          card.icon,
+          card.color,
+          card.pageKey,
+        );
+      } else if (card.title == 'Pacientes') {
+        return _CardData(
+          '${card.title} ($pacientesCount)',
           card.icon,
           card.color,
           card.pageKey,

@@ -53,6 +53,9 @@ class ConsultaProvider extends ChangeNotifier {
         medicoNome: medicoEncontrado.nome,
         medicoId: medicoEncontrado.id,
         dataHora: DateTime.parse(consultaMap['data']),
+        dataHoraCadastro: consultaMap['dataHoraCadastro'] != null
+            ? DateTime.parse(consultaMap['dataHoraCadastro'])
+            : DateTime.now(),
         motivo: consultaMap['motivo'] ?? '',
         tipo: consultaMap['tipo'] ?? '',
         observacoes: consultaMap['observacoes'] ?? '',

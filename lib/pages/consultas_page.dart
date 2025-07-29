@@ -43,6 +43,15 @@ class ConsultasPage extends StatelessWidget {
     );
   }
 
+  String _formatarDataHora(DateTime dt) {
+    String dia = dt.day.toString().padLeft(2, '0');
+    String mes = dt.month.toString().padLeft(2, '0');
+    String ano = dt.year.toString();
+    String hora = dt.hour.toString().padLeft(2, '0');
+    String minuto = dt.minute.toString().padLeft(2, '0');
+    return '$dia-$mes-$ano às $hora:$minuto';
+  }
+
   @override
   Widget build(BuildContext context) {
     final consultaProvider = context.watch<ConsultaProvider>();
@@ -80,7 +89,7 @@ class ConsultasPage extends StatelessWidget {
                   children: [
                     const SizedBox(height: 4),
                     Text('Médico: ${consulta.medicoNome}'),
-                    Text('Data: ${consulta.dataHora.toLocal().toString().split(' ')[0]}'),
+                    Text('Data: ${_formatarDataHora(consulta.dataHora.toLocal())}'),
                   ],
                 ),
                 trailing: Row(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/consulta_provider.dart';
+import 'providers/paciente_provider.dart'; // ✅ Adicionado aqui
 import 'pages/login_page.dart';
 import 'pages/home_page.dart';
 
@@ -18,6 +19,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ConsultaProvider()),
+        ChangeNotifierProvider(create: (_) => PacienteProvider()), // ✅ Adicionado aqui
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

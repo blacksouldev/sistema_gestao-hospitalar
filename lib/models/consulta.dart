@@ -3,7 +3,8 @@ class Consulta {
   final String pacienteNome;
   final String medicoNome;
   final String medicoId;
-  final DateTime dataHora;
+  final DateTime dataHora; // data/hora da consulta
+  final DateTime dataHoraCadastro; // data/hora do momento do cadastro
   final String motivo;
   final String tipo;
   final String observacoes;
@@ -14,6 +15,7 @@ class Consulta {
     required this.medicoNome,
     required this.medicoId,
     required this.dataHora,
+    required this.dataHoraCadastro,
     required this.motivo,
     required this.tipo,
     required this.observacoes,

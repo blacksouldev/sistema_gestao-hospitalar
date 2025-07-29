@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/app_drawer.dart';
 import 'dashboard_page.dart';
 import 'consultas_page.dart';
+import 'pacientes_page.dart'; // Import da página de pacientes
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -32,10 +33,10 @@ class _HomePageState extends State<HomePage> {
         );
       case 'consultas':
         return const ConsultasPage();
+      case 'pacientes':
+        return const PacientesPage(); // Ajustado para abrir a página real
       case 'relatorios':
         return const Center(child: Text('Página: Relatórios'));
-      case 'pacientes':
-        return const Center(child: Text('Página: Pacientes'));
       case 'profissionais':
         return const Center(child: Text('Página: Profissionais'));
       case 'leitos':
