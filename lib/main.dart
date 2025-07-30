@@ -5,7 +5,9 @@ import 'providers/auth_provider.dart';
 import 'providers/consulta_provider.dart';
 import 'providers/paciente_provider.dart';
 import 'providers/profissional_provider.dart';
-import 'providers/leito_provider.dart'; // ✅ Novo provider adicionado
+import 'providers/leito_provider.dart';
+import 'providers/prontuario_provider.dart';
+import 'providers/usuario_provider.dart'; // <-- importar aqui
 
 import 'pages/login_page.dart';
 import 'pages/home_page.dart';
@@ -25,7 +27,9 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ConsultaProvider()),
         ChangeNotifierProvider(create: (_) => PacienteProvider()),
         ChangeNotifierProvider(create: (_) => ProfissionalProvider()),
-        ChangeNotifierProvider(create: (_) => LeitoProvider()), // ✅ LeitoProvider aqui
+        ChangeNotifierProvider(create: (_) => LeitoProvider()),
+        ChangeNotifierProvider(create: (_) => ProntuarioProvider()),
+        ChangeNotifierProvider(create: (_) => UsuarioProvider()), 
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

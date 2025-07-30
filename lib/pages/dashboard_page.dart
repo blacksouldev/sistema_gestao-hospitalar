@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import '../providers/consulta_provider.dart';
 import '../providers/paciente_provider.dart';
 import '../providers/profissional_provider.dart';
-import '../providers/leito_provider.dart';  // <-- novo
+import '../providers/leito_provider.dart';
+import '../providers/prontuario_provider.dart'; // adiciona o provider
+import '../providers/usuario_provider.dart'; // adiciona o provider
 
 class DashboardPage extends StatefulWidget {
   final Function(String pageKey) onCardTap;
@@ -15,7 +17,7 @@ class DashboardPage extends StatefulWidget {
 }
 
 class _DashboardPageState extends State<DashboardPage> {
-  List<bool> _visibleCards = List.filled(7, false);
+  List<bool> _visibleCards = List.filled(9, false); // aumentei para 9 cards
   int? _hoveredIndex;
 
   @override
@@ -96,44 +98,42 @@ class _DashboardPageState extends State<DashboardPage> {
     return provider.leitos.length;
   }
 
+  int _getContagemProntuarios(BuildContext context) {
+    final provider = Provider.of<ProntuarioProvider>(context);
+    return provider.prontuarios.length;
+  }
+
+  int _getContagemUsuarios(BuildContext context) {
+    final provider = Provider.of<UsuarioProvider>(context);
+    return provider.usuarios.length;
+  }
+
   @override
   Widget build(BuildContext context) {
     int consultasCount = _getContagemConsultas(context);
     int pacientesCount = _getContagemPacientes(context);
     int profissionaisCount = _getContagemProfissionais(context);
     int leitosCount = _getContagemLeitos(context);
+    int prontuariosCount = _getContagemProntuarios(context);
+    int usuariosCount = _getContagemUsuarios(context);
 
     List<_CardData> cards = baseCards.map((card) {
-      if (card.title == 'Consultas') {
-        return _CardData(
-          '${card.title} ($consultasCount)',
-          card.icon,
-          card.color,
-          card.pageKey,
-        );
-      } else if (card.title == 'Pacientes') {
-        return _CardData(
-          '${card.title} ($pacientesCount)',
-          card.icon,
-          card.color,
-          card.pageKey,
-        );
-      } else if (card.title == 'Profissionais') {
-        return _CardData(
-          '${card.title} ($profissionaisCount)',
-          card.icon,
-          card.color,
-          card.pageKey,
-        );
-      } else if (card.title == 'Leitos') {
-        return _CardData(
-          '${card.title} ($leitosCount)',
-          card.icon,
-          card.color,
-          card.pageKey,
-        );
+      switch (card.title) {
+        case 'Consultas':
+          return _CardData('${card.title} ($consultasCount)', card.icon, card.color, card.pageKey);
+        case 'Pacientes':
+          return _CardData('${card.title} ($pacientesCount)', card.icon, card.color, card.pageKey);
+        case 'Profissionais':
+          return _CardData('${card.title} ($profissionaisCount)', card.icon, card.color, card.pageKey);
+        case 'Leitos':
+          return _CardData('${card.title} ($leitosCount)', card.icon, card.color, card.pageKey);
+        case 'Prontuários':
+          return _CardData('${card.title} ($prontuariosCount)', card.icon, card.color, card.pageKey);
+        case 'Usuários':
+          return _CardData('${card.title} ($usuariosCount)', card.icon, card.color, card.pageKey);
+        default:
+          return card;
       }
-      return card;
     }).toList();
 
     String descriptionText;
