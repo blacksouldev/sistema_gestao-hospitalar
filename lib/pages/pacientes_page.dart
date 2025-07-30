@@ -47,6 +47,9 @@ class PacientesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final pacienteProvider = context.watch<PacienteProvider>();
 
+    final larguraTela = MediaQuery.of(context).size.width;
+    final bool isWideScreen = larguraTela >= 600;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Pacientes'),
@@ -100,18 +103,26 @@ class PacientesPage extends StatelessWidget {
           },
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: ElevatedButton.icon(
-        onPressed: () => _abrirFormularioPaciente(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Novo Paciente'),
-        style: ElevatedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          foregroundColor: Colors.white,
-          elevation: 6,
+      floatingActionButtonLocation: isWideScreen
+          ? FloatingActionButtonLocation.centerFloat
+          : FloatingActionButtonLocation.endFloat,
+      floatingActionButton: isWideScreen
+          ? Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: ElevatedButton.icon(
+          onPressed: () => _abrirFormularioPaciente(context),
+          icon: const Icon(Icons.add),
+          label: const Text('Novo Paciente'),
+          style: ElevatedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+            elevation: 6,
+          ),
         ),
+      )
+          : FloatingActionButton(
+        onPressed: () => _abrirFormularioPaciente(context),
+        child: const Icon(Icons.add),
       ),
     );
   }

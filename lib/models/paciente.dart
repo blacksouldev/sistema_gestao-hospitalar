@@ -5,6 +5,7 @@ class Paciente {
   final String telefone;
   final String email;
   final DateTime dataNascimento;
+  final DateTime dataCadastro; // novo campo obrigatório
 
   Paciente({
     required this.id,
@@ -13,5 +14,6 @@ class Paciente {
     required this.telefone,
     required this.email,
     required this.dataNascimento,
+    required this.dataCadastro, // novo campo no construtor
   });
 }

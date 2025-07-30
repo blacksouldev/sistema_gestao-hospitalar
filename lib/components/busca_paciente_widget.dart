@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/paciente.dart';
 import '../providers/paciente_provider.dart';
-import 'novo_paciente.dart'; // ajuste o caminho conforme seu projeto
+import 'novo_paciente.dart';
 
 typedef OnPacienteSelecionado = void Function(Paciente? paciente);
 
@@ -17,7 +17,7 @@ class BuscaPacienteWidget extends StatefulWidget {
 
 class _BuscaPacienteWidgetState extends State<BuscaPacienteWidget> {
   final TextEditingController _cpfController = TextEditingController();
-  Paciente? _pacienteEncontrado;
+  List<Paciente> _pacientesEncontrados = [];
   bool _buscando = false;
   String? _erro;
 
@@ -25,8 +25,8 @@ class _BuscaPacienteWidgetState extends State<BuscaPacienteWidget> {
     final cpf = _cpfController.text.trim();
     if (cpf.isEmpty) {
       setState(() {
-        _erro = 'Informe um CPF válido para busca';
-        _pacienteEncontrado = null;
+        _erro = 'Informe ao menos parte do CPF para busca';
+        _pacientesEncontrados.clear();
       });
       widget.onPacienteSelecionado(null);
       return;
@@ -35,34 +35,34 @@ class _BuscaPacienteWidgetState extends State<BuscaPacienteWidget> {
     setState(() {
       _buscando = true;
       _erro = null;
-      _pacienteEncontrado = null;
+      _pacientesEncontrados.clear();
     });
 
     final provider = context.read<PacienteProvider>();
-
-    // busca segura, retorna null se não achar
-    final pacientesFiltrados = provider.pacientes.where((p) => p.cpf == cpf).toList();
-    Paciente? paciente = pacientesFiltrados.isNotEmpty ? pacientesFiltrados.first : null;
+    final pacientesFiltrados = provider.pacientes.where((p) => p.cpf.startsWith(cpf)).toList();
 
     Future.delayed(const Duration(milliseconds: 300), () {
       if (!mounted) return;
 
       setState(() {
         _buscando = false;
-        if (paciente == null) {
-          _erro = 'Paciente não encontrado. Você pode cadastrar um novo paciente.';
+        if (pacientesFiltrados.isEmpty) {
+          _erro = 'Nenhum paciente encontrado. Você pode cadastrar um novo paciente.';
           widget.onPacienteSelecionado(null);
         } else {
-          _pacienteEncontrado = paciente;
-          _erro = null;
-          widget.onPacienteSelecionado(paciente);
+          _pacientesEncontrados = pacientesFiltrados;
+          if (_pacientesEncontrados.length == 1) {
+            widget.onPacienteSelecionado(_pacientesEncontrados.first);
+          } else {
+            widget.onPacienteSelecionado(null);
+          }
         }
       });
     });
   }
 
   void _abrirCadastroPaciente() {
-    Navigator.of(context).pop(); // fecha modal atual se houver
+    Navigator.of(context).pop();
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -89,35 +89,54 @@ class _BuscaPacienteWidgetState extends State<BuscaPacienteWidget> {
         TextFormField(
           controller: _cpfController,
           decoration: InputDecoration(
-            labelText: 'Buscar Paciente pelo CPF',
+            labelText: 'Buscar Paciente pelo CPF (parcial)',
             suffixIcon: IconButton(
               icon: const Icon(Icons.search),
               onPressed: _buscando ? null : _buscarPaciente,
             ),
           ),
           keyboardType: TextInputType.number,
+          onFieldSubmitted: (_) => _buscarPaciente(), // permite buscar com ENTER
         ),
         const SizedBox(height: 8),
         if (_buscando)
           const LinearProgressIndicator()
-        else if (_pacienteEncontrado != null)
+        else if (_pacientesEncontrados.length == 1)
           Text(
-            'Paciente encontrado: ${_pacienteEncontrado!.nome}\nData Nascimento: ${_pacienteEncontrado!.dataNascimento.day.toString().padLeft(2, '0')}/'
-                '${_pacienteEncontrado!.dataNascimento.month.toString().padLeft(2, '0')}/'
-                '${_pacienteEncontrado!.dataNascimento.year}',
+            'Paciente encontrado: ${_pacientesEncontrados.first.nome}\nData Nascimento: '
+                '${_pacientesEncontrados.first.dataNascimento.day.toString().padLeft(2, '0')}/'
+                '${_pacientesEncontrados.first.dataNascimento.month.toString().padLeft(2, '0')}/'
+                '${_pacientesEncontrados.first.dataNascimento.year}',
             style: const TextStyle(color: Colors.green),
           )
-        else if (_erro != null)
+        else if (_pacientesEncontrados.length > 1)
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(_erro!, style: const TextStyle(color: Colors.red)),
-                TextButton(
-                  onPressed: _abrirCadastroPaciente,
-                  child: const Text('Cadastrar novo paciente'),
+                const Text('Vários pacientes encontrados:', style: TextStyle(fontWeight: FontWeight.bold)),
+                ..._pacientesEncontrados.map(
+                      (p) => ListTile(
+                    title: Text(p.nome),
+                    subtitle: Text('CPF: ${p.cpf}'),
+                    onTap: () {
+                      widget.onPacienteSelecionado(p);
+                      setState(() => _pacientesEncontrados = [p]);
+                    },
+                  ),
                 ),
               ],
-            ),
+            )
+          else if (_erro != null)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(_erro!, style: const TextStyle(color: Colors.red)),
+                  TextButton(
+                    onPressed: _abrirCadastroPaciente,
+                    child: const Text('Cadastrar novo paciente'),
+                  ),
+                ],
+              ),
       ],
     );
   }
